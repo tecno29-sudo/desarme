@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Desarme Notebooks</title>
+<meta name="theme-color" content="#151A21">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Desarme">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: app de taller para el celular. Cabecera fija, vistas por pestaña abajo. Cada pieza lleva una "etiqueta de rotuladora" (cinta negra, letra mono) como en las cajas reales. */
+:root{
+  --bg:#ECEEF2; --card:#FFFFFF; --ink:#151A21; --muted:#5B6370; --line:#D9DDE4; --field:#F5F6F9;
+  --acc:#E25A12; --acc-soft:#FCE6D8; --acc-ink:#A8410B; --on-acc:#FFFFFF;
+  --tape:#151A21; --tape-ink:#F3F4F7;
+  --good:#1D7A4F; --good-soft:#DCF1E6; --warn:#946006; --warn-soft:#FAEFD3; --bad:#B42F2B; --bad-soft:#FADFDD;
+  --shade:rgba(21,26,33,.45);
+  --f-display:"Chakra Petch","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1116; --card:#181C23; --ink:#E8EBF0; --muted:#9AA2AE; --line:#2A303A; --field:#12161C;
+  --acc:#FF8740; --acc-soft:#3A2010; --acc-ink:#FFB07F; --on-acc:#14100C;
+  --tape:#E8EBF0; --tape-ink:#0E1116;
+  --good:#4FC48C; --good-soft:#132C1F; --warn:#E5A83A; --warn-soft:#30250E; --bad:#FF7C74; --bad-soft:#381715;
+  --shade:rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1116; --card:#181C23; --ink:#E8EBF0; --muted:#9AA2AE; --line:#2A303A; --field:#12161C;
+  --acc:#FF8740; --acc-soft:#3A2010; --acc-ink:#FFB07F; --on-acc:#14100C;
+  --tape:#E8EBF0; --tape-ink:#0E1116;
+  --good:#4FC48C; --good-soft:#132C1F; --warn:#E5A83A; --warn-soft:#30250E; --bad:#FF7C74; --bad-soft:#381715;
+  --shade:rgba(0,0,0,.6); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.top .in{max-width:760px;margin:0 auto;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px}
+.mark{font:700 15px var(--f-display);background:var(--tape);color:var(--tape-ink);padding:5px 8px;border-radius:4px;letter-spacing:.06em}
+.top h1{font:700 19px/1.1 var(--f-display);margin:0;letter-spacing:.01em}
+.top small{display:block;font-size:12px;color:var(--muted)}
+.sync{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.sync.ok i{background:var(--good)} .sync.bad i{background:var(--bad)}
+
+main{max-width:760px;margin:0 auto;padding-block:16px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.view{display:flex;flex-direction:column;gap:14px}
+.view>*{min-width:0}
+h2{font:700 24px/1.15 var(--f-display);margin:0;text-wrap:balance}
+h3{font:600 15px var(--f-body);margin:0;letter-spacing:.01em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+.btn{appearance:none;border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.pri{background:var(--acc);color:var(--on-acc)}
+.btn.sec{background:var(--card);border:1px solid var(--line)}
+.btn.dan{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:7px 12px;font-size:14px}
+.btn.full{width:100%}
+.btn[disabled]{opacity:.5;cursor:default}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font:600 22px var(--f-mono);margin-top:2px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.panel .ph{padding:12px 14px 6px}
+.bars{display:flex;flex-direction:column;gap:8px;padding:6px 14px 14px}
+.bar{display:grid;grid-template-columns:110px 1fr 36px;gap:10px;align-items:center;font-size:14px}
+.bar .tr{height:10px;background:var(--field);border-radius:5px;overflow:hidden}
+.bar .fl{height:100%;background:var(--acc);border-radius:5px}
+.bar .n{text-align:right;font-family:var(--f-mono);font-size:13px}
+
+.alerts{display:flex;flex-direction:column}
+.al{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line);background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;cursor:pointer}
+.al:first-child{border-top:0}
+.al .t{flex:1;min-width:0}
+.al .t small{display:block;color:var(--muted);font-size:13px}
+.cnt{font:600 14px var(--f-mono);padding:2px 9px;border-radius:999px}
+.cnt.w{background:var(--warn-soft);color:var(--warn)} .cnt.b{background:var(--bad-soft);color:var(--bad)} .cnt.a{background:var(--acc-soft);color:var(--acc-ink)}
+
+.tape{display:inline-block;font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--tape);color:var(--tape-ink);padding:2px 7px;border-radius:3px;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.p-ok{background:var(--good-soft);color:var(--good)} .p-w{background:var(--warn-soft);color:var(--warn)} .p-b{background:var(--bad-soft);color:var(--bad)} .p-a{background:var(--acc-soft);color:var(--acc-ink)} .p-n{background:var(--field);color:var(--muted)}
+
+.list{display:flex;flex-direction:column}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line);background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;cursor:pointer}
+.it:first-child{border-top:0}
+.it:hover{background:var(--field)}
+.it .t{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.it .d{font-size:14px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.it .r{text-align:right;font-family:var(--f-mono);font-size:14px;white-space:nowrap}
+.it .meta{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0}
+input.f,select.f,textarea.f{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea.f{min-height:72px;resize:vertical}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .mono{font-size:12px;opacity:.75;margin-left:4px}
+
+.empty{padding:28px 18px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty b{color:var(--ink);font-size:17px}
+
+.eqhead{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.eqhead .code{font:600 13px var(--f-mono);color:var(--muted)}
+.grid-t{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (min-width:560px){.grid-t{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tb{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tb b{font-size:14px} .tb span{font-size:12px;color:var(--muted)}
+.tb.has{border-color:var(--good);background:var(--good-soft)}
+.tb.has span{color:var(--good)}
+
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.box summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.box summary::-webkit-details-marker{display:none}
+.box summary .nm{font:700 17px var(--f-display);flex:1;min-width:0;overflow-wrap:anywhere}
+.box summary .tps{font-size:13px;color:var(--muted)}
+.box[open] summary{border-bottom:1px solid var(--line)}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tab{background:none;border:0;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+.tab svg{width:22px;height:22px}
+.tab.on{color:var(--acc-ink)}
+.tab.add .b{width:46px;height:46px;border-radius:14px;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;margin-top:-20px;box-shadow:0 6px 14px -6px var(--acc)}
+
+.sheet{position:fixed;inset:0;z-index:20;background:var(--shade);display:flex;align-items:flex-end;justify-content:center}
+.sheet .pan{background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding-block:16px calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+@media (min-width:700px){.sheet{align-items:center}.sheet .pan{border-radius:18px}}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>label,.fld>.lb{font-size:13px;font-weight:700;color:var(--muted)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer}
+.seg input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.tipos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tipos span{display:block;text-align:center;border-radius:8px}
+.err{color:var(--bad);font-size:14px}
+
+.toast{position:fixed;left:50%;transform:translate(-50%,10px);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:30;max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.note{font-size:13px;color:var(--muted)}
+.gear{background:none;border:1px solid var(--line);border-radius:10px;width:38px;height:38px;display:grid;place-items:center;cursor:pointer;color:var(--ink);flex:0 0 auto}
+.gear svg{width:20px;height:20px}
+@media (max-width:420px){.top small{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <span class="mark" aria-hidden="true">DN</span>
+  <div><h1>Desarme Notebooks</h1><small>Piezas por caja y equipo de origen</small></div>
+  <div class="sync" id="sync" role="status"><i></i><span>…</span></div>
+  <button class="gear" data-act="ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+</div></header>
+
+<main id="main"></main>
+
+<nav class="tabs" aria-label="Secciones"><div class="in">
+  <button class="tab" data-go="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button class="tab" data-go="equipos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></svg>Equipos</button>
+  <button class="tab add" data-act="newPieza" aria-label="Registrar pieza"><span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Pieza</button>
+  <button class="tab" data-go="piezas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>Piezas</button>
+  <button class="tab" data-go="cajas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/></svg>Cajas</button>
+</div></nav>
+
+<div class="toast" id="toast" role="status"></div>
+<div id="sheetRoot"></div>
+
+<script>
+const TIPOS=[
+ ['pantalla','Pantalla','15.6" HD 30 pines · NT156WHM-N42'],
+ ['ram','RAM','8GB DDR4 3200 SODIMM'],
+ ['cpu','Procesador','i5-8250U (si es soldado, va con la placa)'],
+ ['gpu','Gráfica','GTX 1050 4GB · N17P-G0-A1'],
+ ['placa','Placa madre','LA-F841P · i5-8250U integrado'],
+ ['disco','Disco','SSD 256GB M.2 NVMe'],
+ ['wifi','WiFi','Intel 3165NGW M.2'],
+ ['fan','Ventilador','DC28000JLF0 · 4 pines'],
+ ['disipador','Disipador','Heatpipe CPU+GPU'],
+ ['bateria','Batería','L16M2PB1 · 30Wh'],
+ ['teclado','Teclado','Español latino, sin retroiluminación'],
+ ['flex','Flex / cable','Flex de video DC02001ZX00'],
+ ['carcasa','Carcasa','Tapa A / palmrest C / base D'],
+ ['bisagras','Bisagras','Par izquierda y derecha'],
+ ['cargador','Cargador','20V 2.25A punta 4.0x1.7'],
+ ['camara','Cámara','Webcam 720p'],
+ ['parlantes','Parlantes','Par'],
+ ['touchpad','Touchpad','Con flex'],
+ ['otro','Otro','']
+];
+const TNAME=Object.fromEntries(TIPOS.map(t=>[t[0],t[1]]));
+const MARCAS=['Lenovo','HP','Dell','Asus','Acer','Apple','Toshiba','Samsung','MSI','Huawei','Sony Vaio','Gigabyte','Otra'];
+const EST_EQ=[['llego','Llegó'],['desarmando','Desarmando'],['desarmado','Desarmado'],['descartado','Carcasa descartada']];
+const EST_P=[['ok','Probada OK','p-ok'],['sin','Sin probar','p-w'],['mala','Dañada','p-b']];
+const DEST=[['rep','Reparación'],['venta','Venta'],['ambos','Ambos']];
+const SIT=[['caja','En caja'],['usada','Usada en reparación'],['vendida','Vendida']];
+const lab=(arr,k)=>(arr.find(a=>a[0]===k)||[,'—'])[1];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clp=n=>'$'+Math.round(n).toLocaleString('es-CL');
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+          set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('El teléfono no tiene espacio para guardar');return false}}};
+
+/* ---------- datos locales + cola ---------- */
+let STORE=ls.get('dn_data',{equipos:{},piezas:{}});
+let OUT=ls.get('dn_out',[]);
+let CONN=ls.get('dn_conn',null);      // {u,k,nombre,ultima,error}
+let EQ=[], PZ=[];
+let view='inicio', curEq=null, fTipo='todos', fSit='caja', q='';
+
+function rebuild(){
+  EQ=Object.values(STORE.equipos).sort((a,b)=>(+b.creado||0)-(+a.creado||0));
+  PZ=Object.values(STORE.piezas).sort((a,b)=>(+b.creado||0)-(+a.creado||0));
+}
+function persist(){ls.set('dn_data',STORE); ls.set('dn_out',OUT)}
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+function save(col,id,data){
+  id=id||newId(); data={...data,editado:Date.now()};
+  STORE[col][id]={id,...data};
+  OUT=OUT.filter(o=>!(o.col===col&&o.id===id));
+  OUT.push({mid:newId(),op:'set',col,id,data});
+  persist(); rebuild(); render(); flush();
+  return id;
+}
+function del(col,id){
+  delete STORE[col][id];
+  OUT=OUT.filter(o=>!(o.col===col&&o.id===id));
+  OUT.push({mid:newId(),op:'del',col,id});
+  persist(); rebuild(); render(); flush();
+  return true;
+}
+
+/* ---------- sincronización con Google Sheets ---------- */
+let busy=false, pend=false;
+async function call(body){
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),30000);
+  try{
+    const r=await fetch(CONN.u,{method:'POST',body:JSON.stringify({...body,k:CONN.k}),signal:ctl.signal,redirect:'follow'});
+    const j=await r.json(); return j;
+  }finally{clearTimeout(t)}
+}
+async function flush(){
+  if(!CONN){setSync();return}
+  if(busy){pend=true;return}
+  busy=true; setSync('Sincronizando…');
+  try{
+    while(OUT.length){
+      const ops=OUT.slice(0,50);
+      const j=await call({a:'sync',ops});
+      if(!j.ok) throw j;
+      const done=new Set([...(j.hechos||[]),...(j.rechazados||[])]);
+      OUT=OUT.filter(o=>!done.has(o.mid)); persist();
+      if(!done.size) break;
+    }
+    const j=await call({a:'list'});
+    if(!j.ok) throw j;
+    const eq={},pz={};
+    (j.equipos||[]).forEach(e=>eq[e.id]=e); (j.piezas||[]).forEach(p=>pz[p.id]=p);
+    const fresh={equipos:eq,piezas:pz};
+    OUT.forEach(o=>{ if(o.op==='set') fresh[o.col][o.id]={id:o.id,...o.data}; else delete fresh[o.col][o.id] });
+    STORE=fresh; CONN.ultima=Date.now(); CONN.error=''; ls.set('dn_conn',CONN); persist(); rebuild(); render();
+  }catch(e){
+    CONN.error=e&&e.error==='clave'?'La planilla rechazó la clave. Pega el código de conexión de nuevo.'
+      :e&&e.error==='ocupado'?'La planilla estaba ocupada. Se reintenta solo.'
+      :e&&e.error==='sin_configurar'?'Falta ejecutar "configurar" en Apps Script.'
+      :e&&e.error?'Error de la planilla: '+(e.detalle||e.error)
+      :navigator.onLine?'No se pudo llegar a la planilla. Se reintenta solo.':'Sin internet. Los cambios quedan guardados en el teléfono.';
+    ls.set('dn_conn',CONN);
+  }finally{
+    busy=false; setSync();
+    if(pend){pend=false; setTimeout(flush,300)}
+  }
+}
+function setSync(txt){
+  const s=$('#sync'); if(!s) return; let cls='', t;
+  if(txt){t=txt}
+  else if(!CONN){cls='bad';t='Solo en este teléfono'}
+  else if(CONN.error){cls='bad';t=OUT.length?OUT.length+' sin subir':'Sin conexión'}
+  else if(OUT.length){t=OUT.length+' sin subir'}
+  else {cls='ok';t='Sincronizado'}
+  s.className='sync '+cls; s.querySelector('span').textContent=t;
+  if($('#ajStatus')) $('#ajStatus').innerHTML=ajStatus();
+}
+setInterval(()=>{if(document.visibilityState==='visible') flush()},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') flush()});
+window.addEventListener('online',flush);
+window.addEventListener('offline',()=>setSync());
+
+/* ---------- datos derivados ---------- */
+const eqById=id=>STORE.equipos[id];
+const eqName=e=>e?[e.marca,e.modelo].filter(Boolean).join(' '):'';
+const piezasDe=id=>PZ.filter(p=>p.equipoId===id);
+const cajas=()=>[...new Set(PZ.map(p=>String(p.caja||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+
+/* ---------- navegación ---------- */
+const VIEWS=['inicio','equipos','piezas','cajas'];
+function go(v){view=v; if(v!=='equipo') curEq=null; const h='#'+(v==='equipo'?'equipos':v); if(location.hash!==h) history.replaceState(null,'',h); render(); window.scrollTo(0,0)}
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1); if(VIEWS.includes(h)&&h!==view){view=h;render()}});
+
+function render(){
+  document.querySelectorAll('.tab[data-go]').forEach(t=>t.classList.toggle('on',t.dataset.go===(view==='equipo'?'equipos':view)));
+  const m=$('#main');
+  m.innerHTML=({inicio:vInicio,equipos:vEquipos,equipo:vEquipo,piezas:vPiezas,cajas:vCajas}[view]||vInicio)();
+  const qi=$('#q'); if(qi) qi.value=q;
+}
+
+/* ---------- vistas ---------- */
+const units=list=>list.reduce((s,p)=>s+(+p.cantidad||1),0);
+function vInicio(){
+  const enCaja=PZ.filter(p=>(p.situacion||'caja')==='caja');
+  const valor=enCaja.filter(p=>p.destino!=='rep'&&+p.precio>0).reduce((s,p)=>s+(+p.precio)*(+p.cantidad||1),0);
+  const porTipo={}; enCaja.forEach(p=>porTipo[p.tipo]=(porTipo[p.tipo]||0)+(+p.cantidad||1));
+  const tops=Object.entries(porTipo).sort((a,b)=>b[1]-a[1]).slice(0,8); const mx=Math.max(1,...tops.map(t=>t[1]));
+  const sinProbar=enCaja.filter(p=>p.estado==='sin').length, sinCaja=enCaja.filter(p=>!String(p.caja||'').trim()).length;
+  const desarmando=EQ.filter(e=>e.estado==='desarmando'||e.estado==='llego').length;
+  const avisoConn=!CONN?`<div class="panel alerts"><button class="al" data-act="ajustes"><span class="t">Conecta la planilla de Google<small>Hoy los datos quedan solo en este teléfono</small></span><span class="cnt b">!</span></button></div>`:'';
+  if(!PZ.length&&!EQ.length) return `<h2>Inicio</h2>${avisoConn}
+    <div class="panel"><div class="empty">
+      <b>Todavía no hay nada registrado</b>
+      <span>Registra el notebook que vas a desarmar, toca cada pieza que le sacas y anota en qué caja la guardaste.</span>
+      <button class="btn pri" data-act="newEquipo">Registrar primer equipo</button>
+    </div></div>`;
+  return `<h2>Inicio</h2>${avisoConn}
+    <div class="kpis">
+      <div class="kpi"><span class="lbl">Piezas en caja</span><b>${units(enCaja)}</b></div>
+      <div class="kpi"><span class="lbl">Equipos</span><b>${EQ.length}</b></div>
+      <div class="kpi"><span class="lbl">Cajas</span><b>${cajas().length}</b></div>
+      <div class="kpi"><span class="lbl">Valor a la venta</span><b>${valor?clp(valor):'—'}</b></div>
+    </div>
+    ${(sinProbar||sinCaja||desarmando)?`<div class="panel alerts">
+      ${desarmando?`<button class="al" data-go="equipos"><span class="t">Equipos sin terminar de desarmar<small>Estado "Llegó" o "Desarmando"</small></span><span class="cnt a">${desarmando}</span></button>`:''}
+      ${sinProbar?`<button class="al" data-act="filtro" data-est="sin"><span class="t">Piezas sin probar<small>No sabes aún si funcionan</small></span><span class="cnt w">${sinProbar}</span></button>`:''}
+      ${sinCaja?`<button class="al" data-act="filtro" data-est="nocaja"><span class="t">Piezas sin caja asignada<small>Difíciles de encontrar después</small></span><span class="cnt b">${sinCaja}</span></button>`:''}
+    </div>`:''}
+    <div class="panel"><div class="ph between"><h3>Lo que tienes, por tipo</h3><span class="note">unidades en caja</span></div>
+      <div class="bars">${tops.length?tops.map(([t,n])=>`<div class="bar"><span>${esc(TNAME[t]||t)}</span><div class="tr"><div class="fl" style="width:${n/mx*100}%"></div></div><span class="n">${n}</span></div>`).join(''):'<span class="note">Sin piezas en caja.</span>'}</div></div>
+    <div class="panel"><div class="ph between"><h3>Últimas registradas</h3><button class="btn sec sm" data-go="piezas">Ver todas</button></div>
+      <div class="list">${PZ.slice(0,6).map(itemPieza).join('')||'<div class="empty">Sin piezas todavía.</div>'}</div></div>`;
+}
+
+function itemPieza(p){
+  const ep=EST_P.find(e=>e[0]===p.estado)||EST_P[1];
+  const sit=p.situacion||'caja';
+  const e=eqById(p.equipoId); const origen=e?eqName(e):(p.origen||'');
+  return `<button class="it" data-act="editPieza" data-id="${esc(p.id)}">
+    <span class="t">${esc(p.modelo||TNAME[p.tipo]||'Pieza')}${(+p.cantidad||1)>1?` <span class="mono muted">×${+p.cantidad}</span>`:''}</span>
+    <span class="r">${+p.precio>0&&p.destino!=='rep'?clp(p.precio):''}</span>
+    ${p.detalle?`<span class="d" style="grid-column:1/-1">${esc(p.detalle)}</span>`:''}
+    <span class="meta"><span class="tape">${esc(TNAME[p.tipo]||'Otro')}</span>${p.caja?`<span class="pill p-n">Caja ${esc(p.caja)}</span>`:'<span class="pill p-b">Sin caja</span>'}<span class="pill ${ep[2]}">${ep[1]}</span>${sit!=='caja'?`<span class="pill p-a">${lab(SIT,sit)}</span>`:''}${origen?`<span>de ${esc(origen)}</span>`:''}</span>
+  </button>`;
+}
+
+function vEquipos(){
+  return `<div class="between"><h2>Equipos</h2><button class="btn pri sm" data-act="newEquipo">+ Equipo</button></div>
+    <p class="note">Cada notebook que desarmas. Tócalo para ir sacando sus piezas.</p>
+    <div class="panel list">${EQ.length?EQ.map(e=>{
+      const ps=piezasDe(e.id); const tps=[...new Set(ps.map(p=>p.tipo))];
+      const st={llego:'p-n',desarmando:'p-w',desarmado:'p-ok',descartado:'p-n'}[e.estado]||'p-n';
+      return `<button class="it" data-act="openEq" data-id="${esc(e.id)}">
+        <span class="t">${esc(eqName(e)||'Sin modelo')}</span><span class="r">${ps.length} pzs</span>
+        <span class="meta"><span class="mono">${esc(e.codigo||'')}</span>${e.serie?`<span>S/N ${esc(e.serie)}</span>`:''}<span class="pill ${st}">${lab(EST_EQ,e.estado)}</span></span>
+        ${tps.length?`<span class="meta">${tps.map(t=>`<span class="tape">${esc(TNAME[t]||t)}</span>`).join('')}</span>`:''}
+      </button>`}).join(''):`<div class="empty"><b>Sin equipos</b><span>Registra marca, modelo y número de serie del notebook antes de desarmarlo.</span></div>`}</div>`;
+}
+
+function vEquipo(){
+  const e=eqById(curEq); if(!e){view='equipos';return vEquipos()}
+  const ps=piezasDe(e.id); const has={}; ps.forEach(p=>has[p.tipo]=(has[p.tipo]||0)+(+p.cantidad||1));
+  return `<div class="row"><button class="btn sec sm" data-go="equipos">← Equipos</button></div>
+    <div class="eqhead">
+      <div class="between"><span class="code">${esc(e.codigo||'')}</span><span class="pill p-n">${lab(EST_EQ,e.estado)}</span></div>
+      <h2>${esc(eqName(e)||'Sin modelo')}</h2>
+      ${e.serie?`<div class="mono" style="font-size:14px">S/N · P/N ${esc(e.serie)}</div>`:''}
+      ${e.notas?`<div class="muted" style="font-size:14px;white-space:pre-wrap">${esc(e.notas)}</div>`:''}
+      <div class="row"><button class="btn sec sm" data-act="editEquipo" data-id="${esc(e.id)}">Editar equipo</button></div>
+    </div>
+    <h3>Sacar pieza</h3><p class="note">Toca lo que le sacaste. En verde, lo que ya registraste.</p>
+    <div class="grid-t">${TIPOS.map(([k,n])=>`<button class="tb${has[k]?' has':''}" data-act="newPieza" data-tipo="${k}" data-eq="${esc(e.id)}"><b>${n}</b><span>${has[k]?'✓ '+has[k]+' registrada'+(has[k]>1?'s':''):'Agregar'}</span></button>`).join('')}</div>
+    <div class="panel"><div class="ph"><h3>Piezas de este equipo · ${ps.length}</h3></div><div class="list">${ps.map(itemPieza).join('')||'<div class="empty">Aún no le sacas piezas.</div>'}</div></div>`;
+}
+
+function filtered(){
+  const qq=q.trim().toLowerCase();
+  return PZ.filter(p=>{
+    const sit=p.situacion||'caja';
+    if(fSit==='nocaja'){ if(sit!=='caja'||String(p.caja||'').trim()) return false }
+    else if(fSit==='sin'){ if(sit!=='caja'||p.estado!=='sin') return false }
+    else if(fSit!=='todas'&&sit!==fSit) return false;
+    if(fTipo!=='todos'&&p.tipo!==fTipo) return false;
+    if(!qq) return true;
+    const e=eqById(p.equipoId);
+    return [p.modelo,p.detalle,p.caja,p.notas,TNAME[p.tipo],eqName(e),e&&e.serie,e&&e.codigo,p.origen].join(' ').toLowerCase().includes(qq);
+  });
+}
+function vPiezas(){
+  const base=PZ.filter(p=>fSit==='todas'||(fSit==='nocaja'||fSit==='sin'?(p.situacion||'caja')==='caja':(p.situacion||'caja')===fSit));
+  const cnt={}; base.forEach(p=>cnt[p.tipo]=(cnt[p.tipo]||0)+1);
+  const rows=filtered();
+  const sits=[['caja','En caja'],['sin','Sin probar'],['nocaja','Sin caja'],['usada','Usadas'],['vendida','Vendidas'],['todas','Todas']];
+  return `<div class="between"><h2>Piezas</h2>${PZ.length?'<button class="btn sec sm" data-act="csv">Exportar CSV</button>':''}</div>
+    <div class="search"><label for="q" hidden>Buscar</label><input class="f" id="q" type="search" placeholder="Buscar modelo, part number, caja o equipo" autocomplete="off"></div>
+    <div class="chips" role="group" aria-label="Situación">${sits.map(([k,n])=>`<button class="chip${fSit===k?' on':''}" data-act="sit" data-v="${k}">${n}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="Tipo"><button class="chip${fTipo==='todos'?' on':''}" data-act="tipo" data-v="todos">Todos<span class="mono">${base.length}</span></button>${TIPOS.filter(t=>cnt[t[0]]).map(([k,n])=>`<button class="chip${fTipo===k?' on':''}" data-act="tipo" data-v="${k}">${n}<span class="mono">${cnt[k]}</span></button>`).join('')}</div>
+    <div class="panel list" id="plist">${rows.map(itemPieza).join('')||`<div class="empty"><b>Nada con este filtro</b>${!PZ.length?'<button class="btn pri" data-act="newPieza">Registrar pieza</button>':''}</div>`}</div>
+    <p class="note" id="pcount">${rows.length} de ${PZ.length} registros.</p>`;
+}
+
+function vCajas(){
+  const groups={}; PZ.filter(p=>(p.situacion||'caja')==='caja').forEach(p=>{const c=String(p.caja||'').trim()||'—';(groups[c]=groups[c]||[]).push(p)});
+  const names=Object.keys(groups).sort((a,b)=>a==='—'?1:b==='—'?-1:a.localeCompare(b,'es',{numeric:true}));
+  return `<h2>Cajas</h2><p class="note">Lo que hay hoy en cada caja (sin contar lo usado o vendido).</p>
+    ${names.length?names.map(c=>{const ps=groups[c]; const tps={}; ps.forEach(p=>tps[p.tipo]=(tps[p.tipo]||0)+(+p.cantidad||1));
+      return `<details class="box"><summary><span class="tape">${c==='—'?'SIN CAJA':'CAJA'}</span><span class="nm">${c==='—'?'Sin asignar':esc(c)}</span><span class="mono">${units(ps)}</span></summary>
+        <div style="padding:8px 14px 0" class="tps">${Object.entries(tps).map(([t,n])=>esc(TNAME[t]||t)+' '+n).join(' · ')}</div>
+        <div class="list">${ps.map(itemPieza).join('')}</div></details>`}).join(''):'<div class="panel"><div class="empty"><b>Sin cajas</b><span>Las cajas aparecen solas cuando escribes una al registrar una pieza.</span></div></div>'}`;
+}
+
+/* ---------- formularios ---------- */
+function seg(name,opts,val){return `<div class="seg" role="radiogroup">${opts.map(([k,n])=>`<label><input type="radio" name="${name}" value="${k}"${val===k?' checked':''}><span>${n}</span></label>`).join('')}</div>`}
+function openSheet(html,kind){$('#sheetRoot').innerHTML=`<div class="sheet" id="sheet"><form class="pan" id="frm" data-kind="${kind}" novalidate>${html}</form></div>`; document.body.style.overflow='hidden'}
+function closeSheet(){$('#sheetRoot').innerHTML=''; document.body.style.overflow=''}
+
+function formEquipo(e){
+  e=e||{estado:'desarmando'};
+  openSheet(`<div class="between"><h2>${e.id?'Editar equipo':'Nuevo equipo'}</h2><button type="button" class="btn sec sm" data-act="close">Cerrar</button></div>
+    <input type="hidden" name="id" value="${esc(e.id||'')}">
+    <div class="two">
+      <div class="fld"><label for="eMarca">Marca</label><input class="f" id="eMarca" name="marca" list="dlMarcas" value="${esc(e.marca||'')}" autocomplete="off"></div>
+      <div class="fld"><label for="eModelo">Modelo</label><input class="f" id="eModelo" name="modelo" placeholder="IdeaPad 330-15IKB" value="${esc(e.modelo||'')}"></div>
+    </div>
+    <datalist id="dlMarcas">${MARCAS.map(m=>`<option value="${m}">`).join('')}</datalist>
+    <div class="fld"><label for="eSerie">Número de serie / Product number</label><input class="f mono" id="eSerie" name="serie" placeholder="Etiqueta de la base" value="${esc(e.serie||'')}" autocomplete="off"></div>
+    <div class="fld"><span class="lb">Estado</span>${seg('estado',EST_EQ,e.estado)}</div>
+    <div class="fld"><label for="eNotas">Notas</label><textarea class="f" id="eNotas" name="notas" placeholder="Falla, de dónde vino, si la placa tiene daño por líquido…">${esc(e.notas||'')}</textarea></div>
+    <p class="err" id="ferr" hidden></p>
+    <button class="btn pri full" type="submit">${e.id?'Guardar cambios':'Registrar y empezar a desarmar'}</button>
+    ${e.id?`<button class="btn dan full" type="button" data-act="delEquipo" data-id="${esc(e.id)}">Borrar equipo</button>`:''}`,'equipo');
+}
+
+function formPieza(p){
+  const isNew=!p.id, tipo=p.tipo||'pantalla';
+  const ph=(TIPOS.find(t=>t[0]===tipo)||[])[2]||'';
+  openSheet(`<div class="between"><h2>${isNew?'Registrar pieza':'Editar pieza'}</h2><button type="button" class="btn sec sm" data-act="close">Cerrar</button></div>
+    <input type="hidden" name="id" value="${esc(p.id||'')}">
+    <div class="fld"><span class="lb">Tipo</span><div class="seg tipos">${TIPOS.map(([k,n])=>`<label><input type="radio" name="tipo" value="${k}"${tipo===k?' checked':''}><span>${n}</span></label>`).join('')}</div></div>
+    <div class="fld"><label for="pModelo">Modelo o part number</label><input class="f mono" id="pModelo" name="modelo" value="${esc(p.modelo||'')}" placeholder="Lo que dice la etiqueta" autocomplete="off"></div>
+    <div class="fld"><label for="pDet">Detalle</label><input class="f" id="pDet" name="detalle" value="${esc(p.detalle||'')}" placeholder="${esc(ph)}"></div>
+    <div class="two">
+      <div class="fld"><label for="pCaja">Caja</label><input class="f" id="pCaja" name="caja" list="dlCajas" value="${esc(p.caja??'')}" placeholder="Ej: 3, A2, Pantallas 15.6" autocomplete="off"></div>
+      <div class="fld"><label for="pCant">Cantidad</label><input class="f mono" id="pCant" name="cantidad" type="number" inputmode="numeric" min="1" step="1" value="${+p.cantidad||1}"></div>
+    </div>
+    <datalist id="dlCajas">${cajas().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    <div class="fld"><label for="pEq">Equipo de origen</label><select class="f" id="pEq" name="equipoId"><option value="">Ninguno / no sé</option>${EQ.map(e=>`<option value="${esc(e.id)}"${p.equipoId===e.id?' selected':''}>${esc((e.codigo?e.codigo+' · ':'')+(eqName(e)||'Sin modelo'))}</option>`).join('')}</select></div>
+    <div class="fld"><span class="lb">Estado</span>${seg('estado',EST_P.map(e=>[e[0],e[1]]),p.estado||'sin')}</div>
+    <div class="fld"><span class="lb">Para</span>${seg('destino',DEST,p.destino||'ambos')}</div>
+    <div class="two">
+      <div class="fld"><label for="pPrecio">Precio venta CLP</label><input class="f mono" id="pPrecio" name="precio" type="number" inputmode="numeric" min="0" step="100" value="${+p.precio||''}" placeholder="Opcional"></div>
+      <div class="fld"><label for="pSit">Situación</label><select class="f" id="pSit" name="situacion">${SIT.map(([k,n])=>`<option value="${k}"${(p.situacion||'caja')===k?' selected':''}>${n}</option>`).join('')}</select></div>
+    </div>
+    <div class="fld"><label for="pNotas">Notas</label><textarea class="f" id="pNotas" name="notas" placeholder="Rayas, pixel muerto, compatible con…">${esc(p.notas||'')}</textarea></div>
+    <p class="err" id="ferr" hidden></p>
+    <button class="btn pri full" type="submit">${isNew?'Guardar pieza':'Guardar cambios'}</button>
+    ${isNew?'<button class="btn sec full" type="button" data-act="saveOtra">Guardar y registrar otra del mismo equipo</button>':`<button class="btn dan full" type="button" data-act="delPieza" data-id="${esc(p.id)}">Borrar pieza</button>`}`,'pieza');
+}
+
+function ajStatus(){
+  if(!CONN) return '<span class="pill p-b">Sin conectar</span> Los datos quedan solo en este teléfono.';
+  const u=CONN.ultima?new Date(CONN.ultima).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'}):'nunca';
+  return `<span class="pill ${CONN.error?'p-b':'p-ok'}">${CONN.error?'Con problemas':'Conectada'}</span> ${esc(CONN.nombre||'Planilla de Google')} · última sincronización ${u}${OUT.length?` · <b>${OUT.length} cambios por subir</b>`:''}${CONN.error?`<br><span class="err">${esc(CONN.error)}</span>`:''}`;
+}
+function formAjustes(){
+  openSheet(`<div class="between"><h2>Ajustes</h2><button type="button" class="btn sec sm" data-act="close">Cerrar</button></div>
+    <div class="panel"><div class="ph"><h3>Planilla de Google</h3></div><div style="padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px">
+      <p class="note" id="ajStatus">${ajStatus()}</p>
+      <div class="fld"><label for="aCode">Código de conexión</label><input class="f mono" id="aCode" name="code" placeholder="desarme:…" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="row"><button class="btn pri sm" type="button" data-act="conectar">Conectar</button>${CONN?'<button class="btn sec sm" type="button" data-act="syncNow">Sincronizar ahora</button><button class="btn dan sm" type="button" data-act="desconectar">Desconectar</button>':''}</div>
+      <p class="note">El código sale de Apps Script (función <span class="mono">codigoConexion</span>). Ver la guía en el repositorio.</p>
+    </div></div>
+    <div class="panel"><div class="ph"><h3>Datos de este teléfono</h3></div><div style="padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px">
+      <p class="note">${EQ.length} equipos y ${PZ.length} piezas guardados aquí.</p>
+      <div class="row"><button class="btn sec sm" type="button" data-act="respaldo">Guardar respaldo</button><label class="btn sec sm" for="aRest">Restaurar respaldo</label><input id="aRest" type="file" accept=".json,application/json" hidden><button class="btn sec sm" type="button" data-act="csv">Exportar CSV</button></div>
+      <p class="note">Restaurar reemplaza lo de este teléfono y lo sube a la planilla si está conectada.</p>
+    </div></div>
+    <p class="err" id="ferr" hidden></p>`,'ajustes');
+}
+
+function readForm(){const o={}; new FormData($('#frm')).forEach((v,k)=>o[k]=typeof v==='string'?v.trim():v); return o}
+function newCode(){let c; const used=new Set(EQ.map(e=>e.codigo)); do{c='EQ-'+Math.random().toString(36).slice(2,6).toUpperCase()}while(used.has(c)); return c}
+function showErr(m){const e=$('#ferr'); if(e){e.textContent=m;e.hidden=false}}
+
+function submitForm(otra){
+  const f=$('#frm'); if(!f) return; const o=readForm();
+  if(f.dataset.kind==='equipo'){
+    if(!o.marca&&!o.modelo&&!o.serie) return showErr('Escribe al menos la marca, el modelo o el número de serie.');
+    const old=o.id?eqById(o.id):null;
+    const data={codigo:old?.codigo||newCode(),marca:o.marca,modelo:o.modelo,serie:o.serie,estado:o.estado||'desarmando',notas:o.notas,creado:old?.creado||Date.now()};
+    const id=save('equipos',o.id||null,data);
+    closeSheet(); toast(old?'Equipo guardado':'Equipo registrado: '+data.codigo);
+    if(!old){curEq=id;view='equipo';render();window.scrollTo(0,0)}
+  }else if(f.dataset.kind==='pieza'){
+    const old=o.id?STORE.piezas[o.id]:null; const e=eqById(o.equipoId);
+    const data={tipo:o.tipo||'otro',modelo:o.modelo,detalle:o.detalle,cantidad:Math.max(1,parseInt(o.cantidad)||1),caja:o.caja,equipoId:o.equipoId||'',
+      origen:e?[e.codigo,eqName(e)].filter(Boolean).join(' · '):(old?.origen||''),estado:o.estado||'sin',destino:o.destino||'ambos',
+      precio:Math.max(0,parseInt(o.precio)||0),situacion:o.situacion||'caja',notas:o.notas,creado:old?.creado||Date.now()};
+    if(!data.modelo&&!data.detalle) return showErr('Escribe el modelo o un detalle para poder encontrarla después.');
+    save('piezas',o.id||null,data);
+    if(data.caja) ls.set('dn_lastCaja',data.caja);
+    toast((TNAME[data.tipo]||'Pieza')+' guardada'+(data.caja?' en caja '+data.caja:''));
+    if(otra) formPieza({equipoId:data.equipoId,caja:data.caja,destino:data.destino,estado:data.estado,tipo:nextTipo(data.equipoId,data.tipo)});
+    else closeSheet();
+  }
+}
+function nextTipo(eqId,cur){const has=new Set(piezasDe(eqId).map(p=>p.tipo)); has.add(cur); const t=TIPOS.find(t=>!has.has(t[0])); return t?t[0]:'otro'}
+
+async function conectar(){
+  const raw=($('#aCode').value||'').trim();
+  let c=null;
+  try{ const b=raw.replace(/^desarme:/,'').replace(/-/g,'+').replace(/_/g,'/'); c=JSON.parse(atob(b+'='.repeat((4-b.length%4)%4))) }catch(e){}
+  if(!c||!/^https:\/\/script\.google(usercontent)?\.com\//.test(c.u||'')||!c.k) return showErr('Ese código no es válido. Copia completo el que empieza con "desarme:".');
+  const prev=CONN; CONN={u:c.u,k:c.k};
+  try{
+    const j=await call({a:'ping'});
+    if(!j.ok){CONN=prev; return showErr(j.error==='clave'?'La planilla rechazó la clave.':j.error==='sin_configurar'?'Falta ejecutar "configurar" en Apps Script.':'La planilla respondió con error: '+j.error)}
+    CONN.nombre=j.nombre; ls.set('dn_conn',CONN);
+    // lo que había solo en el teléfono se sube
+    if(!prev){Object.entries(STORE).forEach(([col,m])=>Object.values(m).forEach(d=>{if(!OUT.some(o=>o.id===d.id)){const {id,...data}=d; OUT.push({mid:newId(),op:'set',col,id,data})}})); persist()}
+    toast('Conectada a '+(j.nombre||'la planilla')); formAjustes(); flush();
+  }catch(e){CONN=prev; showErr('No se pudo llegar a la planilla. Revisa internet y que la implementación sea "Cualquier usuario".')}
+}
+
+/* ---------- archivos ---------- */
+async function bajar(nombre,blob){
+  try{ const file=new File([blob],nombre,{type:blob.type});
+    if(navigator.canShare&&/iPhone|iPad/.test(navigator.userAgent)&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return} }catch(e){if(e.name==='AbortError')return}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function exportCsv(){
+  const cols=['Tipo','Modelo / P/N','Detalle','Cantidad','Caja','Estado','Para','Precio CLP','Situación','Equipo de origen','S/N equipo','Notas','Registrada'];
+  const qq=v=>{v=String(v??'');return /[";\n,]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const lines=[cols.join(';')].concat(PZ.map(p=>{const e=eqById(p.equipoId);return [TNAME[p.tipo]||p.tipo,p.modelo,p.detalle,p.cantidad||1,p.caja,lab(EST_P,p.estado),lab(DEST,p.destino),p.precio||'',lab(SIT,p.situacion||'caja'),e?eqName(e):p.origen,e?e.serie:'',p.notas,p.creado?new Date(+p.creado).toLocaleDateString('es-CL'):''].map(qq).join(';')}));
+  bajar('piezas_'+new Date().toISOString().slice(0,10)+'.csv',new Blob(['﻿'+lines.join('\n')],{type:'text/csv'}));
+}
+function respaldo(){
+  bajar('respaldo_desarme_'+new Date().toISOString().slice(0,10)+'.json',new Blob([JSON.stringify({app:'desarme',v:1,fecha:Date.now(),datos:STORE})],{type:'application/json'}));
+  ls.set('dn_bk',Date.now());
+}
+async function restaurar(file){
+  try{
+    const j=JSON.parse(await file.text()); const d=j&&j.datos;
+    if(!d||typeof d.equipos!=='object'||typeof d.piezas!=='object') throw 0;
+    STORE={equipos:d.equipos,piezas:d.piezas};
+    OUT=[]; Object.entries(STORE).forEach(([col,m])=>Object.values(m).forEach(x=>{const {id,...data}=x; data.editado=Date.now(); OUT.push({mid:newId(),op:'set',col,id,data})}));
+    persist(); rebuild(); closeSheet(); render(); toast('Respaldo restaurado'); flush();
+  }catch(e){showErr('Ese archivo no es un respaldo de esta app.')}
+}
+
+/* ---------- eventos ---------- */
+let delArm=null;
+document.addEventListener('click',ev=>{
+  const g=ev.target.closest('[data-go]'); if(g){ev.preventDefault();closeSheet();go(g.dataset.go);return}
+  const b=ev.target.closest('[data-act]'); if(!b){ if(ev.target.id==='sheet') closeSheet(); return }
+  const a=b.dataset.act, id=b.dataset.id;
+  if(a==='close') closeSheet();
+  else if(a==='ajustes') formAjustes();
+  else if(a==='conectar') conectar();
+  else if(a==='syncNow') flush();
+  else if(a==='desconectar'){ if(delArm!=='conn'){delArm='conn';b.textContent='Toca otra vez';return} delArm=null; CONN=null; ls.set('dn_conn',null); setSync(); formAjustes(); toast('Desconectada. Los datos siguen en el teléfono.') }
+  else if(a==='respaldo') respaldo();
+  else if(a==='newEquipo') formEquipo();
+  else if(a==='editEquipo') formEquipo(eqById(id));
+  else if(a==='openEq'){curEq=id;view='equipo';render();window.scrollTo(0,0)}
+  else if(a==='newPieza') formPieza({tipo:b.dataset.tipo||'pantalla',equipoId:b.dataset.eq||(view==='equipo'?curEq:''),caja:ls.get('dn_lastCaja','')});
+  else if(a==='editPieza'){const p=STORE.piezas[id]; if(p) formPieza(p)}
+  else if(a==='saveOtra') submitForm(true);
+  else if(a==='delPieza'||a==='delEquipo'){
+    if(delArm!==id){delArm=id;b.textContent='Toca otra vez para borrar';setTimeout(()=>{if(delArm===id)delArm=null},4000);return}
+    delArm=null;
+    if(a==='delEquipo'){const n=piezasDe(id).length; del('equipos',id); closeSheet(); go('equipos'); toast(n?`Equipo borrado. Sus ${n} piezas se mantienen con el nombre del equipo.`:'Equipo borrado')}
+    else {del('piezas',id); closeSheet(); toast('Pieza borrada')}
+  }
+  else if(a==='sit'){fSit=b.dataset.v;fTipo='todos';render()}
+  else if(a==='tipo'){fTipo=b.dataset.v;render()}
+  else if(a==='filtro'){fSit=b.dataset.est;fTipo='todos';q='';go('piezas')}
+  else if(a==='csv') exportCsv();
+});
+document.addEventListener('submit',ev=>{ev.preventDefault();submitForm(false)});
+document.addEventListener('change',ev=>{
+  if(ev.target.name==='tipo'&&ev.target.closest('#frm')){const t=TIPOS.find(t=>t[0]===ev.target.value); const d=$('#pDet'); if(d) d.placeholder=t?t[2]:''}
+  if(ev.target.id==='aRest'&&ev.target.files[0]) restaurar(ev.target.files[0]);
+});
+let qt; document.addEventListener('input',ev=>{
+  if(ev.target.id==='q'){q=ev.target.value; clearTimeout(qt); qt=setTimeout(()=>{const l=$('#plist'); if(l){const r=filtered(); l.innerHTML=r.map(itemPieza).join('')||'<div class="empty"><b>Nada con esta búsqueda</b></div>'; const n=$('#pcount'); if(n) n.textContent=r.length+' de '+PZ.length+' registros.'}},150)}
+});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape') closeSheet()});
+let tt; function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+const h0=location.hash.slice(1); if(VIEWS.includes(h0)) view=h0;
+rebuild(); render(); setSync(); flush();
+</script>
+</body>
+</html>
